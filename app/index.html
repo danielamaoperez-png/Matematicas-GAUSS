@@ -1,0 +1,1048 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Gauss Determinantes</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Calcula determinantes y resuelve sistemas de ecuaciones lineales por el método de Gauss, paso a paso y con fracciones exactas.">
+<meta name="theme-color" content="#eef1f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e1220" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gauss">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
+<style>
+/* Layout: app de una columna para teléfono — cabecera fija, tarjetas apiladas
+   (resumen arriba, editor de matriz, paso a paso) y barra de pestañas abajo. */
+:root {
+  --bg: #eef1f5;
+  --surface: #ffffff;
+  --surface-2: #f6f8fb;
+  --ink: #141a2a;
+  --muted: #5b6479;
+  --line: #d6dbe4;
+  --grid: rgba(45, 70, 196, 0.07);
+  --accent: #2d46c4;
+  --accent-soft: #e2e7fb;
+  --on-accent: #ffffff;
+  --pivot: #fbe9b4;
+  --pivot-ink: #6b4a00;
+  --row: #e8edfd;
+  --good: #1d7a4b;
+  --good-soft: #def3e7;
+  --warn: #8f5b00;
+  --warn-soft: #fbefd6;
+  --bad: #b3261e;
+  --bad-soft: #fbe3e1;
+  --shadow: 0 1px 2px rgba(20, 26, 42, 0.06), 0 6px 20px rgba(20, 26, 42, 0.05);
+
+  --f-display: "Instrument Serif", "Iowan Old Style", "Times New Roman", serif;
+  --f-body: "IBM Plex Sans", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --radius: 14px;
+  --tabbar: 64px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1220; --surface: #161b2c; --surface-2: #1b2135; --ink: #e8ebf4; --muted: #99a2b8;
+    --line: #2a3149; --grid: rgba(143, 162, 255, 0.07); --accent: #8fa2ff; --accent-soft: #232b52;
+    --on-accent: #0e1220; --pivot: #4a3b12; --pivot-ink: #ffd978; --row: #1f2747;
+    --good: #5fd49d; --good-soft: #12301f; --warn: #f2bd5b; --warn-soft: #362810;
+    --bad: #ff8b82; --bad-soft: #3b1715; --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1220; --surface: #161b2c; --surface-2: #1b2135; --ink: #e8ebf4; --muted: #99a2b8;
+  --line: #2a3149; --grid: rgba(143, 162, 255, 0.07); --accent: #8fa2ff; --accent-soft: #232b52;
+  --on-accent: #0e1220; --pivot: #4a3b12; --pivot-ink: #ffd978; --row: #1f2747;
+  --good: #5fd49d; --good-soft: #12301f; --warn: #f2bd5b; --warn-soft: #362810;
+  --bad: #ff8b82; --bad-soft: #3b1715; --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.5 var(--f-body);
+  -webkit-tap-highlight-color: transparent;
+  min-height: 100vh;
+}
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px);
+  z-index: 30; background: var(--bg);
+}
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+[hidden] { display: none !important; }
+
+/* ---------- Cabecera ---------- */
+.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 10px;
+}
+.top-in { max-width: 720px; margin: 0 auto; display: flex; align-items: baseline; gap: 10px; }
+.marca { font-family: var(--f-display); font-size: 28px; line-height: 1; letter-spacing: -0.01em; }
+.marca i { color: var(--accent); }
+.top-sub { color: var(--muted); font-size: 13px; }
+
+/* ---------- Contenido ---------- */
+main {
+  max-width: 720px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 16px calc(var(--tabbar) + env(safe-area-inset-bottom, 0px) + 24px);
+}
+.vista { display: grid; gap: 14px; }
+.card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 16px; min-width: 0;
+}
+.card-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+h2 { margin: 0; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+h3 { margin: 0 0 6px; font-size: 15px; font-weight: 600; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+
+/* ---------- Resumen (dashboard) ---------- */
+.resumen { display: grid; gap: 12px; }
+.det-label { font-family: var(--f-display); font-style: italic; font-size: 22px; color: var(--muted); }
+.det-valor {
+  font-family: var(--f-display); font-size: clamp(44px, 13vw, 64px); line-height: 1;
+  letter-spacing: -0.01em; overflow-wrap: anywhere; font-variant-numeric: tabular-nums;
+}
+.det-aprox { font-family: var(--f-mono); font-size: 13px; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px;
+  font-size: 12.5px; font-weight: 500; background: var(--surface-2); border: 1px solid var(--line); color: var(--ink);
+}
+.chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: 0.8; }
+.chip.neutral::before { display: none; }
+.chip.good { background: var(--good-soft); color: var(--good); border-color: transparent; }
+.chip.warn { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+.chip.bad { background: var(--bad-soft); color: var(--bad); border-color: transparent; }
+.error-box { background: var(--bad-soft); color: var(--bad); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+.resumen-acciones { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.ecuaciones { display: grid; gap: 2px; font-family: var(--f-mono); font-size: 14px; overflow-x: auto; }
+.ecuaciones div { white-space: nowrap; }
+.solucion { display: grid; gap: 4px; font-family: var(--f-mono); font-size: 16px; overflow-x: auto; }
+.solucion div { white-space: nowrap; }
+.solucion .libre { color: var(--muted); }
+.var { font-family: var(--f-display); font-style: italic; font-size: 1.15em; }
+
+/* ---------- Controles ---------- */
+.seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 3px; gap: 2px; }
+.seg button {
+  border: 0; background: transparent; padding: 7px 12px; border-radius: 8px; font-size: 14px; font-weight: 500;
+  color: var(--muted); cursor: pointer; min-height: 36px;
+}
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+
+.fila-ctrl { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-bottom: 12px; }
+.paso-n { display: inline-flex; align-items: center; gap: 8px; }
+.paso-n label { font-size: 13px; color: var(--muted); }
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface-2); }
+.stepper button { border: 0; background: transparent; width: 38px; height: 38px; font-size: 20px; cursor: pointer; color: var(--accent); }
+.stepper button:disabled { color: var(--line); cursor: default; }
+.stepper output { min-width: 44px; text-align: center; font-family: var(--f-mono); font-weight: 500; font-variant-numeric: tabular-nums; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  border-radius: 10px; padding: 8px 14px; min-height: 40px; font-size: 14px; font-weight: 500; cursor: pointer;
+}
+.btn:active { transform: translateY(1px); }
+.btn.primario { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.suave { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+.btn.peligro { color: var(--bad); }
+
+.opciones { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; padding: 12px; border-radius: 10px; background: var(--surface-2); margin-bottom: 12px; }
+.campo { display: grid; gap: 3px; }
+.campo label { font-size: 12px; color: var(--muted); }
+.campo input[type="number"] {
+  width: 76px; height: 38px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
+  padding: 0 8px; font-family: var(--f-mono); font-size: 16px;
+}
+.check { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; min-height: 38px; }
+.check input { width: 20px; height: 20px; accent-color: var(--accent); }
+.ejemplos { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+
+/* ---------- Editor de matriz ---------- */
+.lienzo {
+  overflow-x: auto; padding: 14px 10px; border-radius: 10px; border: 1px solid var(--line);
+  background-color: var(--surface-2);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+.editor { display: grid; gap: 6px; width: max-content; margin: 0 auto; position: relative; padding: 0 12px; }
+.editor::before, .editor::after { content: ""; position: absolute; top: 0; bottom: 0; width: 8px; border: 2px solid var(--ink); }
+.editor.corchetes::before { left: 0; border-right: 0; border-radius: 3px 0 0 3px; }
+.editor.corchetes::after { right: 0; border-left: 0; border-radius: 0 3px 3px 0; }
+.editor.barras::before { left: 2px; width: 0; border-width: 0 0 0 2px; }
+.editor.barras::after { right: 2px; width: 0; border-width: 0 2px 0 0; }
+.editor.con-cab::before, .editor.con-cab::after { top: 26px; }
+.ed-fila { display: flex; gap: 6px; }
+.ed-cab { display: flex; gap: 6px; height: 20px; }
+.ed-cab span { width: var(--cw, 58px); text-align: center; font-family: var(--f-display); font-style: italic; color: var(--muted); font-size: 16px; line-height: 20px; }
+.ed-sep { width: 2px; align-self: stretch; background: var(--muted); opacity: 0.5; margin: 0 2px; border-radius: 1px; }
+.ed-cab .ed-sep { background: transparent; }
+.cell {
+  width: var(--cw, 58px); height: 46px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
+  text-align: center; font-family: var(--f-mono); font-size: 16px; padding: 0 4px; font-variant-numeric: tabular-nums;
+}
+.cell:focus { border-color: var(--accent); outline: 2px solid var(--accent-soft); outline-offset: 0; }
+.cell[aria-invalid="true"] { border-color: var(--bad); background: var(--bad-soft); color: var(--bad); }
+.cell::placeholder { color: var(--muted); opacity: 0.45; }
+
+.teclas { display: flex; gap: 6px; margin-top: 10px; }
+.teclas button {
+  flex: 1; min-height: 44px; border: 1px solid var(--line); background: var(--surface); border-radius: 10px;
+  font-family: var(--f-mono); font-size: 17px; cursor: pointer; color: var(--ink);
+}
+.teclas button.sig { flex: 1.6; font-family: var(--f-body); font-size: 14px; font-weight: 500; color: var(--accent); }
+.ayuda { margin-top: 8px; font-size: 12.5px; color: var(--muted); }
+
+/* ---------- Paso a paso ---------- */
+details.pasos > summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+details.pasos > summary::-webkit-details-marker { display: none; }
+details.pasos > summary .flecha { transition: transform 0.2s; color: var(--muted); }
+details.pasos[open] > summary .flecha { transform: rotate(90deg); }
+.lista-pasos { display: grid; gap: 14px; margin-top: 14px; }
+.paso { display: grid; gap: 6px; min-width: 0; }
+.paso-op { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.paso-num { font-family: var(--f-mono); font-size: 12px; color: var(--muted); min-width: 22px; }
+.paso-op code { font-family: var(--f-mono); font-size: 14px; font-weight: 500; background: var(--accent-soft); color: var(--accent); padding: 2px 8px; border-radius: 6px; }
+.paso-nota { font-size: 13px; color: var(--muted); }
+.mat-wrap { overflow-x: auto; padding: 2px 0; }
+.mat { border-collapse: separate; border-spacing: 0; font-family: var(--f-mono); font-size: 13.5px; position: relative; font-variant-numeric: tabular-nums; }
+.mat td { padding: 3px 9px; text-align: right; white-space: nowrap; }
+.mat tr.op td { background: var(--row); }
+.mat td.piv { background: var(--pivot); color: var(--pivot-ink); font-weight: 500; border-radius: 4px; }
+.mat td.sep { border-left: 1.5px solid var(--muted); }
+.mat.barras td:first-child { border-left: 2px solid var(--ink); }
+.mat.barras td:last-child { border-right: 2px solid var(--ink); }
+.mat.corchetes { border-left: 2px solid var(--ink); border-right: 2px solid var(--ink); border-radius: 4px; }
+.formula { font-family: var(--f-mono); font-size: 14px; background: var(--surface-2); border-radius: 10px; padding: 10px 12px; overflow-x: auto; white-space: nowrap; }
+.formula b { font-weight: 500; color: var(--accent); }
+
+/* ---------- Más: historial, ajustes ---------- */
+.hist { display: grid; gap: 0; }
+.hist button {
+  display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; text-align: left; width: 100%;
+  background: transparent; border: 0; border-top: 1px solid var(--line); padding: 10px 2px; cursor: pointer;
+}
+.hist button:first-child { border-top: 0; }
+.hist .h-t { font-weight: 500; }
+.hist .h-v { font-family: var(--f-mono); grid-row: span 2; align-self: center; color: var(--accent); max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hist .h-f { font-size: 12.5px; color: var(--muted); }
+.vacio { color: var(--muted); font-size: 14px; padding: 6px 0; }
+.ajuste { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.switch { position: relative; width: 50px; height: 30px; flex: none; }
+.switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.switch span { position: absolute; inset: 0; border-radius: 999px; background: var(--line); transition: background 0.2s; pointer-events: none; }
+.switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.25); transition: transform 0.2s; }
+.switch input:checked + span { background: var(--accent); }
+.switch input:checked + span::after { transform: translateX(20px); }
+.switch input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+ol.instalar { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.texto { display: grid; gap: 8px; max-width: 65ch; }
+.confirmar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* ---------- Aviso de instalación ---------- */
+.aviso {
+  display: flex; gap: 12px; align-items: flex-start; background: var(--accent-soft); color: var(--ink);
+  border-radius: var(--radius); padding: 12px 14px; font-size: 14px; margin-bottom: 14px;
+}
+.aviso b { color: var(--accent); }
+.aviso button { margin-left: auto; border: 0; background: transparent; color: var(--muted); font-size: 20px; line-height: 1; cursor: pointer; padding: 0 4px; }
+
+/* ---------- Barra de pestañas ---------- */
+.tabs {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+  border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: max(8px, env(safe-area-inset-left, 0px));
+  padding-right: max(8px, env(safe-area-inset-right, 0px));
+}
+.tabs-in { max-width: 720px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); height: var(--tabbar); }
+.tabs a {
+  display: grid; justify-items: center; align-content: center; gap: 2px; text-decoration: none;
+  color: var(--muted); font-size: 11.5px; font-weight: 500;
+}
+.tabs a svg { width: 26px; height: 26px; }
+.tabs a[aria-current="page"] { color: var(--accent); }
+
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--tabbar) + env(safe-area-inset-bottom, 0px) + 14px);
+  background: var(--ink); color: var(--bg); padding: 9px 16px; border-radius: 999px; font-size: 14px; z-index: 40;
+  box-shadow: var(--shadow); max-width: calc(100% - 32px);
+}
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+@media (min-width: 640px) {
+  .det-wrap { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 16px; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <div class="marca">Gauss <i>|A|</i></div>
+    <div class="top-sub" id="subtitulo">Determinantes</div>
+  </div>
+</header>
+
+<main>
+  <div class="aviso" id="aviso-instalar" hidden>
+    <div>Instálala en tu iPhone: toca <b>Compartir</b> <svg width="14" height="16" viewBox="0 0 14 16" aria-hidden="true" style="vertical-align:-2px"><path d="M7 1v9M3.5 4.5 7 1l3.5 3.5M2 7.5H1v7.5h12V7.5h-1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg> y luego <b>Añadir a pantalla de inicio</b>.</div>
+    <button type="button" id="cerrar-aviso" aria-label="Cerrar aviso">×</button>
+  </div>
+
+  <!-- ===================== DETERMINANTE ===================== -->
+  <section class="vista" id="vista-det" data-vista="det">
+    <div class="card resumen" aria-live="polite">
+      <div class="card-h"><h2>Resultado</h2><span class="chip neutral" id="det-dim">3 × 3</span></div>
+      <div id="det-resumen"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h">
+        <h2>Matriz A</h2>
+        <div class="seg" role="group" aria-label="Forma de introducir la matriz">
+          <button type="button" id="det-modo-auto" data-modo="auto">Automática</button>
+          <button type="button" id="det-modo-manual" data-modo="manual">Manual</button>
+        </div>
+      </div>
+      <div class="fila-ctrl">
+        <div class="paso-n">
+          <label for="det-n-out">Tamaño</label>
+          <div class="stepper">
+            <button type="button" id="det-n-menos" aria-label="Reducir tamaño">−</button>
+            <output id="det-n-out">3×3</output>
+            <button type="button" id="det-n-mas" aria-label="Aumentar tamaño">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="opciones" id="det-opc-auto">
+        <div class="campo"><label for="det-min">Mínimo</label><input type="number" id="det-min" inputmode="numeric" value="-9"></div>
+        <div class="campo"><label for="det-max">Máximo</label><input type="number" id="det-max" inputmode="numeric" value="9"></div>
+        <label class="check"><input type="checkbox" id="det-frac"> Con fracciones</label>
+        <button type="button" class="btn primario" id="det-generar">Generar matriz</button>
+      </div>
+      <div class="opciones" id="det-opc-manual" hidden>
+        <p class="small muted" style="flex:1 1 220px">Escribe los valores en cada casilla. Puedes usar enteros, decimales (2.5 o 2,5) y fracciones (1/3).</p>
+        <button type="button" class="btn" id="det-vaciar">Vaciar</button>
+        <button type="button" class="btn" id="det-identidad">Identidad</button>
+      </div>
+      <div class="lienzo"><div class="editor barras" id="det-editor"></div></div>
+      <div class="teclas" data-teclas>
+        <button type="button" data-tecla="signo" aria-label="Cambiar signo">±</button>
+        <button type="button" data-tecla="frac" aria-label="Escribir barra de fracción">/</button>
+        <button type="button" data-tecla="punto" aria-label="Escribir punto decimal">.</button>
+        <button type="button" class="sig" data-tecla="sig">Siguiente →</button>
+      </div>
+      <p class="ayuda">Las casillas vacías cuentan como 0. El resultado se recalcula al escribir.</p>
+    </div>
+
+    <div class="card">
+      <details class="pasos" id="det-pasos-d" open>
+        <summary><h2>Paso a paso · método de Gauss</h2><span class="flecha" aria-hidden="true">›</span></summary>
+        <div class="lista-pasos" id="det-pasos"></div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ===================== SISTEMAS ===================== -->
+  <section class="vista" id="vista-sis" data-vista="sis" hidden>
+    <div class="card resumen" aria-live="polite">
+      <div class="card-h"><h2>Solución</h2><span class="chip neutral" id="sis-dim">3 ecuaciones · 3 variables</span></div>
+      <div id="sis-resumen"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h">
+        <h2>Matriz ampliada (A | b)</h2>
+        <div class="seg" role="group" aria-label="Forma de introducir la matriz">
+          <button type="button" id="sis-modo-auto" data-modo="auto">Automática</button>
+          <button type="button" id="sis-modo-manual" data-modo="manual">Manual</button>
+        </div>
+      </div>
+      <div class="fila-ctrl">
+        <div class="paso-n">
+          <label for="sis-n-out">Variables (n)</label>
+          <div class="stepper">
+            <button type="button" id="sis-n-menos" aria-label="Quitar una variable">−</button>
+            <output id="sis-n-out">3</output>
+            <button type="button" id="sis-n-mas" aria-label="Añadir una variable">+</button>
+          </div>
+        </div>
+        <div class="paso-n">
+          <label for="sis-m-out">Ecuaciones (m ≤ n)</label>
+          <div class="stepper">
+            <button type="button" id="sis-m-menos" aria-label="Quitar una ecuación">−</button>
+            <output id="sis-m-out">3</output>
+            <button type="button" id="sis-m-mas" aria-label="Añadir una ecuación">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="opciones" id="sis-opc-auto">
+        <div class="campo"><label for="sis-min">Mínimo</label><input type="number" id="sis-min" inputmode="numeric" value="-9"></div>
+        <div class="campo"><label for="sis-max">Máximo</label><input type="number" id="sis-max" inputmode="numeric" value="9"></div>
+        <label class="check"><input type="checkbox" id="sis-frac"> Con fracciones</label>
+        <button type="button" class="btn primario" id="sis-generar">Generar sistema</button>
+      </div>
+      <div class="opciones" id="sis-opc-manual" hidden>
+        <p class="small muted" style="flex:1 1 220px">Cada fila es una ecuación: coeficientes de x₁…xₙ y, tras la línea, el término independiente b.</p>
+        <button type="button" class="btn" id="sis-vaciar">Vaciar</button>
+      </div>
+      <div class="ejemplos" aria-label="Ejemplos">
+        <button type="button" class="btn suave" data-ejemplo="unica">Ejemplo: solución única</button>
+        <button type="button" class="btn suave" data-ejemplo="infinitas">Infinitas soluciones</button>
+        <button type="button" class="btn suave" data-ejemplo="ninguna">Sin solución</button>
+      </div>
+      <div class="lienzo"><div class="editor corchetes con-cab" id="sis-editor"></div></div>
+      <div class="teclas" data-teclas>
+        <button type="button" data-tecla="signo" aria-label="Cambiar signo">±</button>
+        <button type="button" data-tecla="frac" aria-label="Escribir barra de fracción">/</button>
+        <button type="button" data-tecla="punto" aria-label="Escribir punto decimal">.</button>
+        <button type="button" class="sig" data-tecla="sig">Siguiente →</button>
+      </div>
+      <p class="ayuda">Las casillas vacías cuentan como 0. La solución se recalcula al escribir.</p>
+    </div>
+
+    <div class="card">
+      <details class="pasos" id="sis-pasos-d" open>
+        <summary><h2>Paso a paso · método de Gauss</h2><span class="flecha" aria-hidden="true">›</span></summary>
+        <div class="lista-pasos" id="sis-pasos"></div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ===================== MÁS ===================== -->
+  <section class="vista" id="vista-mas" data-vista="mas" hidden>
+    <div class="card">
+      <div class="card-h"><h2>Historial</h2><div id="hist-borrar-zona"></div></div>
+      <div class="hist" id="historial"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>Ajustes</h2></div>
+      <div class="ajuste">
+        <div>
+          <h3>Pivoteo parcial</h3>
+          <p class="small muted">Usa como pivote el número de mayor valor absoluto de cada columna. Si lo desactivas, se usa el primer número distinto de 0, como se suele hacer a mano.</p>
+        </div>
+        <label class="switch"><input type="checkbox" id="ajuste-pivoteo" checked aria-label="Pivoteo parcial"><span></span></label>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>Instalar en el iPhone</h2></div>
+      <ol class="instalar">
+        <li>Abre esta página en <b>Safari</b>.</li>
+        <li>Toca el botón <b>Compartir</b> (el cuadrado con la flecha hacia arriba).</li>
+        <li>Elige <b>Añadir a pantalla de inicio</b> y toca <b>Añadir</b>.</li>
+        <li>Abre <b>Gauss</b> desde tu pantalla de inicio. Funciona a pantalla completa y sin conexión.</li>
+      </ol>
+      <p class="small muted" id="estado-instalada" style="margin-top:10px"></p>
+    </div>
+
+    <div class="card texto">
+      <div class="card-h" style="margin-bottom:0"><h2>Cómo calcula</h2></div>
+      <p><b>Determinante.</b> Lleva la matriz a forma triangular superior con operaciones de fila. Restar a una fila un múltiplo de otra no cambia el determinante; cada intercambio de filas le cambia el signo. Al final, det(A) = (−1)<sup>k</sup> · producto de la diagonal, donde k es el número de intercambios. Para 2×2 y 3×3 se comprueba además con ad − bc y con la regla de Sarrus.</p>
+      <p><b>Sistemas.</b> Con m ecuaciones y n variables (m ≤ n) se escalona la matriz ampliada y se despeja hacia atrás. Por el teorema de Rouché–Frobenius: si rango(A) ≠ rango(A|b) no hay solución; si son iguales a n hay una única; si son menores que n hay infinitas, expresadas con parámetros t₁, t₂…</p>
+      <p class="small muted">Todos los cálculos se hacen con fracciones exactas, sin errores de redondeo.</p>
+    </div>
+  </section>
+</main>
+
+<nav class="tabs" aria-label="Secciones">
+  <div class="tabs-in">
+    <a href="#det" data-tab="det">
+      <svg viewBox="0 0 26 26" aria-hidden="true"><path d="M6 5v16M20 5v16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><text x="13" y="17.5" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="12" fill="currentColor">A</text></svg>
+      Determinante
+    </a>
+    <a href="#sis" data-tab="sis">
+      <svg viewBox="0 0 26 26" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5h-1v16h1M21 5h1v16h-1"/><path d="M8 9h6M8 13h6M8 17h6M17.5 7.5v11" stroke-width="1.6"/></svg>
+      Sistemas
+    </a>
+    <a href="#mas" data-tab="mas">
+      <svg viewBox="0 0 26 26" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="13" cy="13" r="8.5"/><path d="M13 8.5V13l3 2"/></svg>
+      Historial y más
+    </a>
+  </div>
+</nav>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="gauss.js"></script>
+<script>
+(function () {
+  "use strict";
+  const G = window.Gauss;
+  const $ = (id) => document.getElementById(id);
+  const CLAVE = "gauss-app-v1";
+
+  // ---------------------------------------------------------------
+  // Estado y almacenamiento local
+  // ---------------------------------------------------------------
+  const porDefecto = {
+    det: { n: 3, modo: "auto", min: -9, max: 9, frac: false, celdas: [["3", "2", "-1"], ["1", "-1", "4"], ["2", "5", "1"]] },
+    sis: { n: 3, m: 3, modo: "auto", min: -9, max: 9, frac: false, celdas: [["2", "1", "-1", "8"], ["-3", "-1", "2", "-11"], ["-2", "1", "2", "-3"]] },
+    pivoteo: true,
+    historial: [],
+    avisoCerrado: false,
+  };
+  let estado = cargar();
+
+  function cargar() {
+    try {
+      const guardado = JSON.parse(localStorage.getItem(CLAVE) || "null");
+      if (guardado && guardado.det && guardado.sis) return Object.assign(structuredClone(porDefecto), guardado);
+    } catch (e) { /* sin almacenamiento disponible */ }
+    return structuredClone(porDefecto);
+  }
+  function guardar() {
+    try { localStorage.setItem(CLAVE, JSON.stringify(estado)); } catch (e) { /* ignorar */ }
+  }
+
+  // ---------------------------------------------------------------
+  // Utilidades de formato
+  // ---------------------------------------------------------------
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const fmt = (q) => q.toString().replace(/-/g, "−");
+  const SUB = "₀₁₂₃₄₅₆₇₈₉";
+  const sub = (k) => String(k).split("").map((d) => SUB[+d]).join("");
+  function aprox(q) {
+    if (q.d === 1n) return "";
+    const x = q.aNumero();
+    if (!isFinite(x)) return "";
+    return "≈ " + (Math.abs(x) >= 1e6 || (Math.abs(x) < 1e-4 && x !== 0) ? x.toExponential(5) : +x.toFixed(6)).toString().replace("-", "−");
+  }
+
+  function matrizHTML(M, o = {}) {
+    const cols = M[0].length;
+    let h = `<div class="mat-wrap"><table class="mat ${o.aug ? "corchetes" : "barras"}"><tbody>`;
+    M.forEach((fila, i) => {
+      const op = o.filas && o.filas.includes(i);
+      h += `<tr${op ? ' class="op"' : ""}>`;
+      fila.forEach((v, j) => {
+        const cls = [];
+        if (o.piv && o.piv[0] === i && o.piv[1] === j) cls.push("piv");
+        if (o.aug && j === cols - 1) cls.push("sep");
+        h += `<td${cls.length ? ` class="${cls.join(" ")}"` : ""}>${esc(fmt(v))}</td>`;
+      });
+      h += "</tr>";
+    });
+    return h + "</tbody></table></div>";
+  }
+
+  let toastT;
+  function toast(msg) {
+    const t = $("toast");
+    t.textContent = msg; t.hidden = false;
+    clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 2200);
+  }
+
+  // ---------------------------------------------------------------
+  // Editor de matrices (compartido por las dos pestañas)
+  // ---------------------------------------------------------------
+  function redimensionar(celdas, filas, cols) {
+    const nueva = [];
+    for (let i = 0; i < filas; i++) {
+      nueva.push([]);
+      for (let j = 0; j < cols; j++) nueva[i].push(celdas[i] && celdas[i][j] !== undefined ? celdas[i][j] : "");
+    }
+    return nueva;
+  }
+
+  function construirEditor(prefijo, celdas, aug) {
+    const ed = $(prefijo + "-editor");
+    const cols = celdas[0].length;
+    let h = "";
+    if (aug) {
+      h += '<div class="ed-cab" aria-hidden="true">';
+      for (let j = 0; j < cols; j++) {
+        if (j === cols - 1) h += '<div class="ed-sep"></div>';
+        h += `<span>${j === cols - 1 ? "b" : "x" + sub(j + 1)}</span>`;
+      }
+      h += "</div>";
+    }
+    celdas.forEach((fila, i) => {
+      h += '<div class="ed-fila">';
+      fila.forEach((v, j) => {
+        if (aug && j === cols - 1) h += '<div class="ed-sep" aria-hidden="true"></div>';
+        const etiqueta = aug ? (j === cols - 1 ? `Ecuación ${i + 1}, término independiente` : `Ecuación ${i + 1}, coeficiente de x${j + 1}`) : `Fila ${i + 1}, columna ${j + 1}`;
+        h += `<input class="cell" id="${prefijo}-${i}-${j}" data-i="${i}" data-j="${j}" value="${esc(v)}" placeholder="0" inputmode="decimal" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="next" aria-label="${etiqueta}">`;
+      });
+      h += "</div>";
+    });
+    ed.innerHTML = h;
+    // Casillas más estrechas cuando hay muchas columnas, para que quepan en el teléfono
+    ed.style.setProperty("--cw", cols <= 3 ? "58px" : cols === 4 ? "54px" : cols === 5 ? "46px" : "44px");
+  }
+
+  let ultimaCelda = null;
+  document.addEventListener("focusin", (e) => { if (e.target.classList && e.target.classList.contains("cell")) ultimaCelda = e.target; });
+
+  function siguienteCelda(input) {
+    const todas = [...input.closest(".editor").querySelectorAll(".cell")];
+    const k = todas.indexOf(input);
+    const sig = todas[(k + 1) % todas.length];
+    sig.focus(); sig.select();
+  }
+
+  function aplicarTecla(tecla, contenedor) {
+    let c = ultimaCelda;
+    if (!c || !contenedor.contains(c)) c = contenedor.querySelector(".cell");
+    if (!c) return;
+    if (tecla === "sig") { siguienteCelda(c); return; }
+    const v = c.value;
+    if (tecla === "signo") {
+      c.value = v.startsWith("-") || v.startsWith("−") ? v.slice(1) : "-" + v;
+    } else {
+      const ch = tecla === "frac" ? "/" : ".";
+      const s = c.selectionStart ?? v.length, f = c.selectionEnd ?? v.length;
+      c.value = v.slice(0, s) + ch + v.slice(f);
+      try { c.setSelectionRange(s + 1, s + 1); } catch (e) { /* ignorar */ }
+    }
+    c.focus();
+    c.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
+  document.querySelectorAll("[data-teclas]").forEach((barra) => {
+    const vista = barra.closest(".vista");
+    barra.querySelectorAll("button").forEach((b) => {
+      // pointerdown + preventDefault mantiene el teclado abierto en el iPhone
+      b.addEventListener("pointerdown", (e) => { e.preventDefault(); aplicarTecla(b.dataset.tecla, vista); });
+      b.addEventListener("click", (e) => { if (e.detail === 0) aplicarTecla(b.dataset.tecla, vista); });
+    });
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && e.target.classList && e.target.classList.contains("cell")) { e.preventDefault(); siguienteCelda(e.target); }
+  });
+
+  function aleatorio(cfg) {
+    let lo = Math.round(Number(cfg.min)), hi = Math.round(Number(cfg.max));
+    if (!isFinite(lo)) lo = -9;
+    if (!isFinite(hi)) hi = 9;
+    if (lo > hi) [lo, hi] = [hi, lo];
+    const ent = () => lo + Math.floor(Math.random() * (hi - lo + 1));
+    if (cfg.frac && Math.random() < 0.3) {
+      const d = 2 + Math.floor(Math.random() * 4);
+      return G.parsear(`${ent()}/${d}`).toString();
+    }
+    return String(ent());
+  }
+
+  function marcarError(prefijo, celdas, error) {
+    document.querySelectorAll(`#${prefijo}-editor .cell`).forEach((c) => c.removeAttribute("aria-invalid"));
+    celdas.forEach((fila, i) => fila.forEach((v, j) => {
+      if (!G.parsear(v)) { const c = $(`${prefijo}-${i}-${j}`); if (c) c.setAttribute("aria-invalid", "true"); }
+    }));
+    return error;
+  }
+
+  function errorHTML(e) {
+    return `<div class="error-box">${esc(e.message)} Corrige la casilla marcada en rojo.</div>`;
+  }
+
+  // ---------------------------------------------------------------
+  // Pestaña: Determinante
+  // ---------------------------------------------------------------
+  const det = estado.det;
+  let ultimoDet = null;
+
+  function pintarDetControles() {
+    $("det-n-out").textContent = `${det.n}×${det.n}`;
+    $("det-dim").textContent = `${det.n} × ${det.n}`;
+    $("det-n-menos").disabled = det.n <= 1;
+    $("det-n-mas").disabled = det.n >= 8;
+    $("det-modo-auto").setAttribute("aria-pressed", det.modo === "auto");
+    $("det-modo-manual").setAttribute("aria-pressed", det.modo === "manual");
+    $("det-opc-auto").hidden = det.modo !== "auto";
+    $("det-opc-manual").hidden = det.modo !== "manual";
+    $("det-min").value = det.min; $("det-max").value = det.max; $("det-frac").checked = !!det.frac;
+  }
+
+  function calcularDet() {
+    let r;
+    try {
+      r = G.determinante(det.celdas, { pivoteoParcial: estado.pivoteo });
+      marcarError("det", det.celdas, null);
+    } catch (e) {
+      marcarError("det", det.celdas, e);
+      ultimoDet = null;
+      $("det-resumen").innerHTML = errorHTML(e);
+      $("det-pasos").innerHTML = '<p class="muted small">Corrige la matriz para ver los pasos.</p>';
+      return;
+    }
+    ultimoDet = r;
+    const comp = G.comprobacionDirecta(r.original);
+    const chips = [
+      r.singular ? '<span class="chip bad">Singular · no tiene inversa</span>' : '<span class="chip good">Invertible</span>',
+      `<span class="chip neutral">${r.intercambios} intercambio${r.intercambios === 1 ? "" : "s"} de filas</span>`,
+    ];
+    if (comp) chips.push(comp.valor.eq(r.det) ? `<span class="chip good">Comprobado: ${esc(comp.metodo.split(":")[0])}</span>` : '<span class="chip bad">La comprobación no coincide</span>');
+    const ap = aprox(r.det);
+    $("det-resumen").innerHTML = `
+      <div class="det-wrap">
+        <div><div class="det-label">det(A) =</div><div class="det-valor">${esc(fmt(r.det))}</div>${ap ? `<div class="det-aprox">${esc(ap)}</div>` : ""}</div>
+        <div class="resumen-acciones"><button type="button" class="btn" id="det-guardar">Guardar en historial</button></div>
+      </div>
+      <div class="chips">${chips.join("")}</div>`;
+    $("det-guardar").addEventListener("click", () => {
+      agregarHistorial({ tipo: "det", celdas: det.celdas, n: det.n, valor: fmt(r.det) });
+      toast("Guardado en el historial");
+    });
+    pintarPasosDet(r, comp);
+  }
+
+  function pintarPasosDet(r, comp) {
+    let h = `<div class="paso"><div class="paso-op"><span class="paso-num">0</span><h3>Matriz inicial</h3></div>${matrizHTML(r.original)}</div>`;
+    r.pasos.forEach((p, k) => {
+      h += `<div class="paso"><div class="paso-op"><span class="paso-num">${k + 1}</span><code>${esc(p.op)}</code></div>`;
+      h += `<p class="paso-nota">${esc(p.nota)}</p>${matrizHTML(p.m, { piv: p.piv, filas: p.filas })}</div>`;
+    });
+    if (r.pasos.length === 0) h += '<p class="paso-nota">La matriz ya es triangular superior: no hace falta ninguna operación.</p>';
+    if (r.diagonal) {
+      const prod = r.diagonal.map((d) => `(${fmt(d)})`).join(" · ");
+      const signo = r.intercambios ? `(−1)<sup>${r.intercambios}</sup> · ` : "";
+      h += `<div class="paso"><div class="paso-op"><span class="paso-num">✓</span><h3>Producto de la diagonal</h3></div>
+        <div class="formula">det(A) = ${signo}${esc(prod)} = <b>${esc(fmt(r.det))}</b></div></div>`;
+    } else {
+      h += `<div class="formula">det(A) = <b>0</b></div>`;
+    }
+    if (comp) {
+      h += `<div class="paso"><div class="paso-op"><span class="paso-num">≡</span><h3>Comprobación: ${esc(comp.metodo)}</h3></div>
+        <div class="formula">${esc(comp.expresion.replace(/-/g, "−"))} = <b>${esc(fmt(comp.valor))}</b></div></div>`;
+    }
+    $("det-pasos").innerHTML = h;
+  }
+
+  function reconstruirDet() {
+    det.celdas = redimensionar(det.celdas, det.n, det.n);
+    construirEditor("det", det.celdas, false);
+    pintarDetControles();
+    calcularDet();
+    guardar();
+  }
+
+  $("det-editor").addEventListener("input", (e) => {
+    const c = e.target; if (!c.classList.contains("cell")) return;
+    det.celdas[+c.dataset.i][+c.dataset.j] = c.value;
+    programar(() => { calcularDet(); guardar(); });
+  });
+  $("det-n-menos").addEventListener("click", () => { if (det.n > 1) { det.n--; reconstruirDet(); } });
+  $("det-n-mas").addEventListener("click", () => {
+    if (det.n < 8) {
+      det.n++;
+      det.celdas = redimensionar(det.celdas, det.n, det.n);
+      if (det.modo === "auto") det.celdas = det.celdas.map((f) => f.map((v) => (v === "" ? aleatorio(det) : v)));
+      reconstruirDet();
+    }
+  });
+  $("det-modo-auto").addEventListener("click", () => { det.modo = "auto"; pintarDetControles(); guardar(); });
+  $("det-modo-manual").addEventListener("click", () => { det.modo = "manual"; pintarDetControles(); guardar(); });
+  ["det-min", "det-max"].forEach((id) => $(id).addEventListener("change", () => { det.min = $("det-min").value; det.max = $("det-max").value; guardar(); }));
+  $("det-frac").addEventListener("change", () => { det.frac = $("det-frac").checked; guardar(); });
+  $("det-generar").addEventListener("click", () => {
+    det.min = $("det-min").value; det.max = $("det-max").value;
+    det.celdas = det.celdas.map((f) => f.map(() => aleatorio(det)));
+    reconstruirDet();
+  });
+  $("det-vaciar").addEventListener("click", () => {
+    det.celdas = det.celdas.map((f) => f.map(() => ""));
+    reconstruirDet();
+    const c = $("det-0-0"); if (c) c.focus();
+  });
+  $("det-identidad").addEventListener("click", () => {
+    det.celdas = det.celdas.map((f, i) => f.map((_, j) => (i === j ? "1" : "0")));
+    reconstruirDet();
+  });
+
+  // ---------------------------------------------------------------
+  // Pestaña: Sistemas
+  // ---------------------------------------------------------------
+  const sis = estado.sis;
+  const EJEMPLOS = {
+    unica: { n: 3, m: 3, celdas: [["2", "1", "-1", "8"], ["-3", "-1", "2", "-11"], ["-2", "1", "2", "-3"]] },
+    infinitas: { n: 4, m: 2, celdas: [["1", "2", "-1", "1", "3"], ["2", "4", "1", "-1", "3"]] },
+    ninguna: { n: 3, m: 3, celdas: [["1", "1", "1", "6"], ["2", "2", "2", "10"], ["1", "-1", "0", "0"]] },
+  };
+
+  function pintarSisControles() {
+    $("sis-n-out").textContent = sis.n;
+    $("sis-m-out").textContent = sis.m;
+    $("sis-dim").textContent = `${sis.m} ecuaci${sis.m === 1 ? "ón" : "ones"} · ${sis.n} variable${sis.n === 1 ? "" : "s"}`;
+    $("sis-n-menos").disabled = sis.n <= 1;
+    $("sis-n-mas").disabled = sis.n >= 8;
+    $("sis-m-menos").disabled = sis.m <= 1;
+    $("sis-m-mas").disabled = sis.m >= sis.n;
+    $("sis-modo-auto").setAttribute("aria-pressed", sis.modo === "auto");
+    $("sis-modo-manual").setAttribute("aria-pressed", sis.modo === "manual");
+    $("sis-opc-auto").hidden = sis.modo !== "auto";
+    $("sis-opc-manual").hidden = sis.modo !== "manual";
+    $("sis-min").value = sis.min; $("sis-max").value = sis.max; $("sis-frac").checked = !!sis.frac;
+  }
+
+  function terminoHTML(coef, j, primero) {
+    const s = coef.signo();
+    const k = coef.abs();
+    const num = k.esUno() ? "" : esc(fmt(k));
+    const x = `<span class="var">x</span>${sub(j + 1)}`;
+    if (primero) return `${s < 0 ? "−" : ""}${num}${x}`;
+    return ` ${s < 0 ? "−" : "+"} ${num}${x}`;
+  }
+  function ecuacionHTML(fila) {
+    const n = fila.length - 1;
+    let h = "", primero = true;
+    for (let j = 0; j < n; j++) {
+      if (fila[j].esCero()) continue;
+      h += terminoHTML(fila[j], j, primero); primero = false;
+    }
+    if (primero) h = "0";
+    return `${h} = ${esc(fmt(fila[n]))}`;
+  }
+
+  function calcularSis() {
+    let r;
+    try {
+      r = G.resolverSistema(sis.celdas, { pivoteoParcial: estado.pivoteo });
+      marcarError("sis", sis.celdas, null);
+    } catch (e) {
+      marcarError("sis", sis.celdas, e);
+      $("sis-resumen").innerHTML = errorHTML(e);
+      $("sis-pasos").innerHTML = '<p class="muted small">Corrige la matriz para ver los pasos.</p>';
+      return;
+    }
+    const sol = G.formatoSolucion(r);
+    let chip, texto;
+    if (r.tipo === G.DETERMINADO) { chip = '<span class="chip good">Compatible determinado</span>'; texto = "Solución única."; }
+    else if (r.tipo === G.INDETERMINADO) { chip = '<span class="chip warn">Compatible indeterminado</span>'; texto = `Infinitas soluciones con ${r.libres.length} parámetro${r.libres.length === 1 ? "" : "s"} libre${r.libres.length === 1 ? "" : "s"}.`; }
+    else { chip = '<span class="chip bad">Incompatible</span>'; texto = "El sistema no tiene solución."; }
+
+    let solHTML = "";
+    if (sol) {
+      solHTML = '<div class="solucion">' + sol.map((v) =>
+        `<div${v.libre ? ' class="libre"' : ""}><span class="var">x</span>${sub(v.variable.slice(1))} = ${esc(v.valor.replace(/t(\d+)/g, (_, k) => "t" + sub(k)))}${v.libre ? "  (libre)" : ""}</div>`
+      ).join("") + "</div>";
+      if (r.libres.length) solHTML += `<p class="small muted">con ${r.libres.map((_, k) => "t" + sub(k + 1)).join(", ")} ∈ ℝ</p>`;
+    }
+    const resumenTexto = sol ? sol.map((v) => `${v.variable} = ${v.valor}`).join(", ") : "Sin solución";
+
+    $("sis-resumen").innerHTML = `
+      <div class="chips">${chip}<span class="chip neutral">rango(A) = ${r.rango}</span><span class="chip neutral">rango(A|b) = ${r.rangoAmpliada}</span><span class="chip neutral">n = ${r.n}</span></div>
+      <p>${texto}</p>
+      ${solHTML}
+      <div class="resumen-acciones"><button type="button" class="btn" id="sis-guardar">Guardar en historial</button></div>`;
+    $("sis-guardar").addEventListener("click", () => {
+      agregarHistorial({ tipo: "sis", celdas: sis.celdas, n: sis.n, m: sis.m, valor: resumenTexto, clase: r.tipo });
+      toast("Guardado en el historial");
+    });
+    pintarPasosSis(r, sol);
+  }
+
+  function pintarPasosSis(r, sol) {
+    let h = `<div class="paso"><div class="paso-op"><span class="paso-num">0</span><h3>Sistema inicial</h3></div>
+      <div class="ecuaciones">${r.original.map((f) => `<div>${ecuacionHTML(f)}</div>`).join("")}</div>
+      ${matrizHTML(r.original, { aug: true })}</div>`;
+    r.pasos.forEach((p, k) => {
+      h += `<div class="paso"><div class="paso-op"><span class="paso-num">${k + 1}</span><code>${esc(p.op)}</code></div>
+        <p class="paso-nota">${esc(p.nota)}</p>${matrizHTML(p.m, { aug: true, piv: p.piv, filas: p.filas })}</div>`;
+    });
+    h += `<div class="paso"><div class="paso-op"><span class="paso-num">≡</span><h3>Forma escalonada</h3></div>
+      <div class="ecuaciones">${r.escalonada.map((f) => `<div>${ecuacionHTML(f)}</div>`).join("")}</div></div>`;
+    if (r.tipo === G.INCOMPATIBLE) {
+      h += `<div class="formula">Aparece una ecuación 0 = c con c ≠ 0, así que rango(A) = ${r.rango} ≠ rango(A|b) = ${r.rangoAmpliada}: <b>no hay solución</b>.</div>`;
+    } else {
+      const orden = [...r.pivotes].reverse().map((c) => sol[c]);
+      h += `<div class="paso"><div class="paso-op"><span class="paso-num">↑</span><h3>Sustitución hacia atrás</h3></div>`;
+      if (r.libres.length) h += `<p class="paso-nota">Las variables sin pivote quedan libres: ${r.libres.map((j, k) => `x${sub(j + 1)} = t${sub(k + 1)}`).join(", ")}.</p>`;
+      h += `<div class="formula">${orden.map((v) => `x${sub(v.variable.slice(1))} = ${esc(v.valor.replace(/t(\d+)/g, (_, k) => "t" + sub(k)))}`).join("<br>")}</div></div>`;
+    }
+    $("sis-pasos").innerHTML = h;
+  }
+
+  function reconstruirSis() {
+    if (sis.m > sis.n) sis.m = sis.n;
+    sis.celdas = redimensionar(sis.celdas, sis.m, sis.n + 1);
+    construirEditor("sis", sis.celdas, true);
+    pintarSisControles();
+    calcularSis();
+    guardar();
+  }
+
+  // Al cambiar n, el término independiente se queda en la última columna.
+  function cambiarN(nuevoN) {
+    const viejas = sis.celdas;
+    sis.n = nuevoN;
+    if (sis.m > sis.n) sis.m = sis.n;
+    sis.celdas = viejas.slice(0, sis.m).map((f) => {
+      const coef = f.slice(0, -1), b = f[f.length - 1];
+      const nueva = [];
+      for (let j = 0; j < sis.n; j++) nueva.push(coef[j] !== undefined ? coef[j] : (sis.modo === "auto" ? aleatorio(sis) : ""));
+      nueva.push(b);
+      return nueva;
+    });
+    reconstruirSis();
+  }
+
+  $("sis-editor").addEventListener("input", (e) => {
+    const c = e.target; if (!c.classList.contains("cell")) return;
+    sis.celdas[+c.dataset.i][+c.dataset.j] = c.value;
+    programar(() => { calcularSis(); guardar(); });
+  });
+  $("sis-n-menos").addEventListener("click", () => { if (sis.n > 1) cambiarN(sis.n - 1); });
+  $("sis-n-mas").addEventListener("click", () => { if (sis.n < 8) cambiarN(sis.n + 1); });
+  $("sis-m-menos").addEventListener("click", () => { if (sis.m > 1) { sis.m--; reconstruirSis(); } });
+  $("sis-m-mas").addEventListener("click", () => {
+    if (sis.m < sis.n) {
+      sis.m++;
+      sis.celdas = redimensionar(sis.celdas, sis.m, sis.n + 1);
+      if (sis.modo === "auto") sis.celdas[sis.m - 1] = sis.celdas[sis.m - 1].map(() => aleatorio(sis));
+      reconstruirSis();
+    }
+  });
+  $("sis-modo-auto").addEventListener("click", () => { sis.modo = "auto"; pintarSisControles(); guardar(); });
+  $("sis-modo-manual").addEventListener("click", () => { sis.modo = "manual"; pintarSisControles(); guardar(); });
+  ["sis-min", "sis-max"].forEach((id) => $(id).addEventListener("change", () => { sis.min = $("sis-min").value; sis.max = $("sis-max").value; guardar(); }));
+  $("sis-frac").addEventListener("change", () => { sis.frac = $("sis-frac").checked; guardar(); });
+  $("sis-generar").addEventListener("click", () => {
+    sis.min = $("sis-min").value; sis.max = $("sis-max").value;
+    sis.celdas = sis.celdas.map((f) => f.map(() => aleatorio(sis)));
+    reconstruirSis();
+  });
+  $("sis-vaciar").addEventListener("click", () => {
+    sis.celdas = sis.celdas.map((f) => f.map(() => ""));
+    reconstruirSis();
+    const c = $("sis-0-0"); if (c) c.focus();
+  });
+  document.querySelectorAll("[data-ejemplo]").forEach((b) => b.addEventListener("click", () => {
+    const ej = EJEMPLOS[b.dataset.ejemplo];
+    sis.n = ej.n; sis.m = ej.m; sis.celdas = ej.celdas.map((f) => f.slice());
+    reconstruirSis();
+  }));
+
+  // ---------------------------------------------------------------
+  // Historial y ajustes
+  // ---------------------------------------------------------------
+  function agregarHistorial(item) {
+    item.celdas = item.celdas.map((f) => f.slice());
+    item.fecha = Date.now();
+    estado.historial.unshift(item);
+    estado.historial = estado.historial.slice(0, 30);
+    guardar();
+    pintarHistorial();
+  }
+
+  function pintarHistorial() {
+    const lista = $("historial");
+    const zona = $("hist-borrar-zona");
+    if (!estado.historial.length) {
+      lista.innerHTML = '<p class="vacio">Aún no hay cálculos guardados. Usa «Guardar en historial» en el resultado de un determinante o de un sistema.</p>';
+      zona.innerHTML = "";
+      return;
+    }
+    const f = new Intl.DateTimeFormat("es", { dateStyle: "medium", timeStyle: "short" });
+    lista.innerHTML = estado.historial.map((h, k) => {
+      const titulo = h.tipo === "det" ? `Determinante ${h.n}×${h.n}` : `Sistema ${h.m}×${h.n}`;
+      const valor = h.tipo === "det" ? `det = ${h.valor}` : h.valor.replace(/-/g, "−");
+      return `<button type="button" data-k="${k}"><span class="h-t">${esc(titulo)}</span><span class="h-v">${esc(valor)}</span><span class="h-f">${esc(f.format(h.fecha))}</span></button>`;
+    }).join("");
+    zona.innerHTML = '<button type="button" class="btn peligro" id="hist-borrar">Borrar</button>';
+    $("hist-borrar").addEventListener("click", () => {
+      zona.innerHTML = '<div class="confirmar"><span class="small">¿Borrar todo?</span><button type="button" class="btn peligro" id="hist-si">Sí, borrar</button><button type="button" class="btn" id="hist-no">Cancelar</button></div>';
+      $("hist-si").addEventListener("click", () => { estado.historial = []; guardar(); pintarHistorial(); toast("Historial borrado"); });
+      $("hist-no").addEventListener("click", pintarHistorial);
+    });
+  }
+
+  $("historial").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-k]"); if (!b) return;
+    const h = estado.historial[+b.dataset.k];
+    if (h.tipo === "det") {
+      det.n = h.n; det.celdas = h.celdas.map((f) => f.slice());
+      reconstruirDet(); location.hash = "det";
+    } else {
+      sis.n = h.n; sis.m = h.m; sis.celdas = h.celdas.map((f) => f.slice());
+      reconstruirSis(); location.hash = "sis";
+    }
+  });
+
+  $("ajuste-pivoteo").checked = estado.pivoteo;
+  $("ajuste-pivoteo").addEventListener("change", (e) => {
+    estado.pivoteo = e.target.checked; guardar();
+    calcularDet(); calcularSis();
+    toast(estado.pivoteo ? "Pivoteo parcial activado" : "Pivoteo parcial desactivado");
+  });
+
+  // ---------------------------------------------------------------
+  // Navegación por pestañas
+  // ---------------------------------------------------------------
+  const TITULOS = { det: "Determinantes", sis: "Sistemas de ecuaciones", mas: "Historial y ajustes" };
+  function mostrarVista() {
+    let v = location.hash.replace("#", "");
+    if (!TITULOS[v]) v = "det";
+    document.querySelectorAll(".vista").forEach((s) => { s.hidden = s.dataset.vista !== v; });
+    document.querySelectorAll(".tabs a").forEach((a) => {
+      if (a.dataset.tab === v) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+    });
+    $("subtitulo").textContent = TITULOS[v];
+    window.scrollTo(0, 0);
+  }
+  window.addEventListener("hashchange", mostrarVista);
+
+  let temporizador;
+  function programar(fn) { clearTimeout(temporizador); temporizador = setTimeout(fn, 120); }
+
+  // ---------------------------------------------------------------
+  // Instalación (pantalla de inicio del iPhone) y modo sin conexión
+  // ---------------------------------------------------------------
+  const instalada = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  const esIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const enMarco = window.self !== window.top;
+  $("estado-instalada").textContent = instalada ? "Ya estás usando la app instalada." : "";
+  if (esIOS && !instalada && !enMarco && !estado.avisoCerrado) $("aviso-instalar").hidden = false;
+  $("cerrar-aviso").addEventListener("click", () => { $("aviso-instalar").hidden = true; estado.avisoCerrado = true; guardar(); });
+
+  if ("serviceWorker" in navigator && !enMarco && location.protocol === "https:") {
+    window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); });
+  }
+
+  // ---------------------------------------------------------------
+  // Arranque
+  // ---------------------------------------------------------------
+  reconstruirDet();
+  reconstruirSis();
+  pintarHistorial();
+  mostrarVista();
+})();
+</script>
+</body>
+</html>
